@@ -58,6 +58,14 @@ API reference
    
    Returns `True` if the oldest file in `outs` is newer than the newest file in `deps`. If either `outs` or `deps` is a string, it will be converted to a list using `shlex.split`.
 
+.. py:function:: hash_update(outs, deps, dbpath='.tinymk_hashes.db')
+   
+   Returns `True` if any of the files in `deps` have been modified since the last time the function was called. The SHA1 hashes are stored in an SQLite3 database.
+   
+   :param outs: Ignored. Only here so it can be used with :py:func:`run_d`.
+   :param deps: The dependencies.
+   :param dbpath: The path to the SQLite3 database.
+
 .. py:function:: invoke(name, *args, **kw)
    
    Calls the task named `name`.

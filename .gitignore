@@ -3,3 +3,4 @@ test/
 examples/basic/*.out
 examples/coffeescript/*.js
 *.pyc
+__pycache__

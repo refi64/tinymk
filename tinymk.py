@@ -21,12 +21,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__all__ = ['lock', 'add_category', 'task', 'ptask', 'need_to_update', 'qinvoke',
-           'invoke', 'pinvoke', 'qpinvoke', 'cinvoke', 'run', 'run_d', 'main']
+__all__ = ['lock', 'add_category', 'task', 'ptask', 'need_to_update',
+           'hash_update', 'qinvoke', 'invoke', 'pinvoke', 'qpinvoke', 'cinvoke',
+           'run', 'run_d', 'main']
 __version__ = 0.1
 
-import sys, os, subprocess, shlex, traceback, re
+import sys, os, subprocess, shlex, traceback, re, sqlite3, hashlib
 from multiprocessing import Process, Lock
+from contextlib import closing
 
 lock = Lock()
 
@@ -144,6 +146,40 @@ def need_to_update(outs, deps):
     oldest_out = min(map(os.path.getmtime, outs))
     newest_dep = max(map(os.path.getmtime, deps))
     return newest_dep > oldest_out
+
+def get_digest(fpath):
+    h = hashlib.sha1()
+    with open(fpath, 'rb') as f:
+        buf = f.read(1024)
+        while buf:
+            h.update(buf)
+            buf = f.read(1024)
+    return h.hexdigest()
+
+def hash_update(_, deps, dbpath='.tinymk_hashes.db'):
+    if isinstance(deps, str):
+        deps = shlex.split(deps)
+    do_update = False
+    connection = sqlite3.connect(dbpath)
+    with closing(connection):
+        cursor = connection.cursor()
+        cursor.execute('CREATE TABLE IF NOT EXISTS hashes (path text, hash text)')
+        for dep in deps:
+            cursor.execute('SELECT * FROM hashes WHERE path=?', (dep,))
+            row = cursor.fetchone()
+            if row is None:
+                do_update = True
+                cursor.execute('INSERT INTO hashes VALUES (?, ?)', (dep,
+                               get_digest(dep)))
+            else:
+                current = get_digest(dep)
+                old = row[1]
+                if old != current:
+                    do_update = True
+                    cursor.execute('UPDATE hashes SET hash=? WHERE path=?', (
+                                   current, dep))
+        connection.commit()
+    return do_update
 
 def qinvoke(name, *args, **kw):
     if ':' in name:
