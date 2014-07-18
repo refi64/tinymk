@@ -21,11 +21,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__all__ = ['lock', 'add_category', 'task', 'need_to_update', 'qinvoke', 'invoke',
-           'pinvoke', 'qpinvoke', 'run', 'run_d', 'main']
+__all__ = ['lock', 'add_category', 'task', 'ptask', 'need_to_update', 'qinvoke',
+           'invoke', 'pinvoke', 'qpinvoke', 'cinvoke', 'run', 'run_d', 'main']
 __version__ = 0.1
 
-import sys, os, subprocess, shlex, traceback, string
+import sys, os, subprocess, shlex, traceback, re
 from multiprocessing import Process, Lock
 
 lock = Lock()
@@ -93,6 +93,35 @@ def task(tname=None):
         return f
     return _f
 
+def ptask(pattern, outs, deps, category=None):
+    if isinstance(outs, str):
+        outs = shlex.split(outs)
+    if isinstance(deps, str):
+        deps = shlex.split(deps)
+    assert '%' in pattern
+    rpat = re.compile(re.escape(pattern).replace(r'\%', '(.+?)'))
+    res = []
+    for dep in deps:
+        fdep = rpat.match(dep)
+        assert fdep
+        out_res = []
+        for out in outs:
+            assert out.count('%') <= rpat.groups
+            pos = 1
+            while '%' in out:
+                out = out.replace('%', fdep.group(pos), 1)
+                pos += 1
+            out_res.append(out)
+        res.append((tuple(out_res), dep))
+    def _f(f):
+        def mkfunc(outs, dep):
+            return lambda *args, **kw: f(outs, dep, *args, **kw)
+        for outs, dep in res:
+            func = mkfunc(outs, dep)
+            for out in outs:
+                task('%s:%s' % (category, out) if category else out)(func)
+    return _f
+
 def extract_tasks(n, x):
     res = {}
     for k, v in x:
@@ -137,6 +166,11 @@ def qpinvoke(*args, **kw):
     p = Process(target=qinvoke, args=args, kwargs=kw)
     p.start()
     return p
+
+def cinvoke(category_str, invoker=invoke):
+    category = recursive_index(categories, category_str.split(':'))
+    for x in extract_tasks(category_str, category.content.items()):
+        invoker(x)
 
 def run(cmd, write=True, shell=False, get_output=False):
     if write:

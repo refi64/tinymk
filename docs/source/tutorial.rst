@@ -197,6 +197,51 @@ One more thing: you need to be careful when printing text to the screen when mul
        print('Hello!')
    # continue doing other stuff...
 
+Pattern tasks
+*************
+
+Well, what if you need to make a copy of every file in the directory? TinyMk has a feature for this: pattern tasks. A `pattern task` is the TinyMk equivalent to GNU make's pattern rules:
+
+.. code-block:: python
+   
+   from tinymk import *
+   
+   @ptask('%.in', '%.out', glob.glob('*.in'))
+   def copy_files(outs, dep):
+       run_d(outs, dep, 'cp %s %s' % (out[0], dep))
+   
+   main()
+
+What the above code does is this:
+
+For every file in the list returned by `glob.glob`:
+
+- Match the file against the pattern `%.in`. Think about it like a regex: `(.+?)\.in`.
+- Take the next that's in the place of the percent sign and replace the percent in `%.out` with it. For example, if `glob.glob` returned `['abc.in']`, then the pattern `%.in` matching against it would result in `abc`. Then, the percent sign in `%.out` is replaced with `abc` to result in `abc.out`.
+- Create a task with those files.
+
+`outs` is a list, which is why we index the 1st element.
+
+Invoking categories
+*******************
+
+Pattern rules are great, but it's tricky to call them. The solution: put them all in a category and use `cinvoke`:
+
+.. code-block:: python
+   
+   ...
+   
+   add_category('copy_stuff')
+   
+   @ptask('%.in', '%.out', glob.glob('*.in'), 'copy_stuff')
+   ...
+   
+   @task()
+   def copy_stuff():
+       cinvoke('copy_stuff')
+
+`cinvoke` runs every task inside the category `copy_stuff` (except for copy_stuff itself).
+
 Conclusion
 **********
 

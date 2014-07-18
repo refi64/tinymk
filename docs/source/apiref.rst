@@ -33,6 +33,27 @@ API reference
       @task() # task name will be abc
       def xyz(): pass
 
+.. py:function:: ptask(pattern, outs, deps, category=None)
+   
+   A decorator to create a set of pattern tasks. Pattern tasks are the TinyMk equivalent of GNU Make's `pattern rules`. Here's an example:
+   
+   .. code-block:: python
+      
+      @ptask('%.in', '%.out', glob.glob('*.in'))
+      def copy_files(outs, dep):
+          run_d(outs, dep, 'cp %s %s' % (dep, outs[0]))
+   
+   That's roughly equivalent to this GNU make rule:
+   
+   .. code-block:: make
+      
+      %.out : %.in
+          cp $< $@
+   
+   :param pattern: The pattern that `deps` will be matched against.
+   :param outs: The output file patterns.
+   :param deps: The input files.
+
 .. py:function:: need_to_update(outs, deps)
    
    Returns `True` if the oldest file in `outs` is newer than the newest file in `deps`. If either `outs` or `deps` is a string, it will be converted to a list using `shlex.split`.
@@ -56,6 +77,10 @@ API reference
 .. py:function:: pqinvoke(*args, **kw)
    
    The same thing as `pinvoke`, but doesn't print the task that is executing.
+
+.. py:function:: cinvoke(category, invoker=invoke)
+   
+   Call `invoker` for every task contained within `category`. Note that, if the category itself is a task, it will not be called.
 
 .. py:function:: run(cmd, write=True, shell=False, get_output=False)
    
