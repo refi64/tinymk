@@ -3,6 +3,10 @@ API reference
 
 .. py:module:: tinymk
 
+.. py:data:: lock
+   
+   An instance of `multiprocessing.Lock`. Use this when dealing with `stdout` and `stderr`.
+
 .. py:function:: add_category(name)
    
    Add a new category. You can create multiple categories at once by separating the name with colons(`:`):
@@ -40,6 +44,18 @@ API reference
    :param name: The task to call.
    :param \*args: The positional arguments passed to the task.
    :param \*\*kwargs: The keyword arguments passed to the task.
+
+.. py:function:: qinvoke(name, *args, **kw)
+   
+   The same thing as :py:func:`invoke`, but doesn't print the task that is executing.
+
+.. py:function:: pinvoke(*args, **kw)
+   
+   The same thing as `invoke`, but, instead of running the task, launches it in a seperate process and returns a `multiprocessing.Process` object. See :py:func:`invoke`.
+
+.. py:function:: pqinvoke(*args, **kw)
+   
+   The same thing as `pinvoke`, but doesn't print the task that is executing.
 
 .. py:function:: run(cmd, write=True, shell=False, get_output=False)
    

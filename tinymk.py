@@ -21,11 +21,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__all__ = ['add_category', 'task', 'need_to_update', 'invoke', 'run', 'run_d',
-           'main']
+__all__ = ['lock', 'add_category', 'task', 'need_to_update', 'qinvoke', 'invoke',
+           'pinvoke', 'qpinvoke', 'run', 'run_d', 'main']
 __version__ = 0.1
 
 import sys, os, subprocess, shlex, traceback, string
+from multiprocessing import Process, Lock
+
+lock = Lock()
 
 if sys.version_info.major >= 3:
     from shlex import quote
@@ -113,19 +116,35 @@ def need_to_update(outs, deps):
     newest_dep = max(map(os.path.getmtime, deps))
     return newest_dep > oldest_out
 
-def invoke(name, *args, **kw):
+def qinvoke(name, *args, **kw):
     if ':' in name:
         name, category = get_category(name)
         category[name](*args, **kw)
     else:
         tasks[name](*args, **kw)
 
+def invoke(name, *args, **kw):
+    with lock:
+        print('Running task %s...' % name)
+    qinvoke(name, *args, **kw)
+
+def pinvoke(*args, **kw):
+    p = Process(target=invoke, args=args, kwargs=kw)
+    p.start()
+    return p
+
+def qpinvoke(*args, **kw):
+    p = Process(target=qinvoke, args=args, kwargs=kw)
+    p.start()
+    return p
+
 def run(cmd, write=True, shell=False, get_output=False):
     if write:
-        if isinstance(cmd, str):
-            print(cmd)
-        else:
-            print(quote_cmd(cmd))
+        with lock:
+            if isinstance(cmd, str):
+                print(cmd)
+            else:
+                print(quote_cmd(cmd))
     if isinstance(cmd, str) and not shell:
         cmd = shlex.split(cmd)
     if get_output:
