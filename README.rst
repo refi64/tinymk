@@ -1,7 +1,7 @@
 TinyMk
 ======
 
-TinyMk is a small but powerful make system written in Python and based on `Cake <http://coffeescript.org/#cake>`_. It consists of a single script that's about 200 lines long. Here's a somewhat complex example of using it:
+TinyMk is a small but powerful make system written in Python and based on `Cake <http://coffeescript.org/#cake>`_. It consists of a single script that's about 300 lines long. Here's a somewhat complex example of using it:
 
 .. code-block:: python
    
