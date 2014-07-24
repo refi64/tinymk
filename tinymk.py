@@ -165,7 +165,7 @@ def hash_update(_, deps, dbpath='.tinymk_hashes.db'):
         cursor = connection.cursor()
         cursor.execute('CREATE TABLE IF NOT EXISTS hashes (path text, hash text)')
         for dep in deps:
-            cursor.execute('SELECT * FROM hashes WHERE path=?', (dep,))
+            cursor.execute('SELECT hash FROM hashes WHERE path=?', (dep,))
             row = cursor.fetchone()
             if row is None:
                 do_update = True
@@ -173,7 +173,7 @@ def hash_update(_, deps, dbpath='.tinymk_hashes.db'):
                                get_digest(dep)))
             else:
                 current = get_digest(dep)
-                old = row[1]
+                old = row[0]
                 if old != current:
                     do_update = True
                     cursor.execute('UPDATE hashes SET hash=? WHERE path=?', (
