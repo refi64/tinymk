@@ -23,10 +23,10 @@
 
 __all__ = ['lock', 'add_category', 'task', 'ptask', 'need_to_update',
            'hash_update', 'qinvoke', 'invoke', 'pinvoke', 'qpinvoke', 'cinvoke',
-           'run', 'run_d', 'main']
+           'run', 'run_d', 'main', 'DBManager']
 __version__ = 0.1
 
-import sys, os, subprocess, shlex, traceback, re, sqlite3, hashlib
+import sys, os, subprocess, shlex, traceback, re, sqlite3, hashlib, warnings
 from multiprocessing import Process, Lock
 from contextlib import closing
 
@@ -55,6 +55,10 @@ class Category(object):
     def __call__(self):
         if self.f is None:
             sys.exit('this category cannot be run')
+
+class DBManager(object):
+    path = '.tinymk.db'
+    connection = None
 
 categories = {}
 tasks = {}
@@ -156,11 +160,11 @@ def get_digest(fpath):
             buf = f.read(1024)
     return h.hexdigest()
 
-def hash_update(_, deps, dbpath='.tinymk_hashes.db'):
+def digest_update(_, deps):
     if isinstance(deps, str):
         deps = shlex.split(deps)
     do_update = False
-    connection = sqlite3.connect(dbpath)
+    connection = DBManager.connection
     with closing(connection):
         cursor = connection.cursor()
         cursor.execute('CREATE TABLE IF NOT EXISTS hashes (path text, hash text)')
@@ -180,6 +184,10 @@ def hash_update(_, deps, dbpath='.tinymk_hashes.db'):
                                    current, dep))
         connection.commit()
     return do_update
+
+def hash_update(*args, **kw):
+    warnings.warn('use digest_update instead of hash_update', DeprecationWarning)
+    digest_update(*args, **kw)
 
 def qinvoke(name, *args, **kw):
     if ':' in name:
@@ -274,7 +282,9 @@ def print_tasks(tasks):
         else:
             print('%s' % name)
 
-def main():
+def main(dbpath='.tinymk.db', no_warn=False):
+    if not no_warn:
+        warnings.simplefilter('default')
     if '-h' in sys.argv or '--help' in sys.argv:
         sys.stdout.write(help_str)
         sys.exit()
@@ -305,6 +315,7 @@ def main():
             kw[k] = v
             del args[i]
     try:
+        DBManager.connection = sqlite3.connect(DBManager.path)
         invoke(task, *args, **kw)
     except SystemExit as ex:
         sys.exit(ex.code)
