@@ -22,9 +22,9 @@
 # THE SOFTWARE.
 
 __all__ = ['lock', 'add_category', 'task', 'ptask', 'need_to_update',
-           'hash_update', 'qinvoke', 'invoke', 'pinvoke', 'qpinvoke', 'cinvoke',
+           'digest_update', 'qinvoke', 'invoke', 'pinvoke', 'qpinvoke', 'cinvoke',
            'run', 'run_d', 'main', 'DBManager']
-__version__ = 0.1
+__version__ = 0.2
 
 import sys, os, subprocess, shlex, traceback, re, sqlite3, hashlib, warnings
 from multiprocessing import Process, Lock
@@ -165,29 +165,24 @@ def digest_update(_, deps):
         deps = shlex.split(deps)
     do_update = False
     connection = DBManager.connection
-    with closing(connection):
-        cursor = connection.cursor()
-        cursor.execute('CREATE TABLE IF NOT EXISTS hashes (path text, hash text)')
-        for dep in deps:
-            cursor.execute('SELECT hash FROM hashes WHERE path=?', (dep,))
-            row = cursor.fetchone()
-            if row is None:
+    cursor = connection.cursor()
+    cursor.execute('CREATE TABLE IF NOT EXISTS hashes (path text, hash text)')
+    for dep in deps:
+        cursor.execute('SELECT hash FROM hashes WHERE path=?', (dep,))
+        row = cursor.fetchone()
+        if row is None:
+            do_update = True
+            cursor.execute('INSERT INTO hashes VALUES (?, ?)', (dep,
+                           get_digest(dep)))
+        else:
+            current = get_digest(dep)
+            old = row[0]
+            if old != current:
                 do_update = True
-                cursor.execute('INSERT INTO hashes VALUES (?, ?)', (dep,
-                               get_digest(dep)))
-            else:
-                current = get_digest(dep)
-                old = row[0]
-                if old != current:
-                    do_update = True
-                    cursor.execute('UPDATE hashes SET hash=? WHERE path=?', (
-                                   current, dep))
-        connection.commit()
+                cursor.execute('UPDATE hashes SET hash=? WHERE path=?', (
+                               current, dep))
+    connection.commit()
     return do_update
-
-def hash_update(*args, **kw):
-    warnings.warn('use digest_update instead of hash_update', DeprecationWarning)
-    digest_update(*args, **kw)
 
 def qinvoke(name, *args, **kw):
     if ':' in name:
@@ -282,7 +277,7 @@ def print_tasks(tasks):
         else:
             print('%s' % name)
 
-def main(dbpath='.tinymk.db', no_warn=False):
+def main(no_warn=False):
     if not no_warn:
         warnings.simplefilter('default')
     if '-h' in sys.argv or '--help' in sys.argv:
