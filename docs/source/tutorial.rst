@@ -242,6 +242,19 @@ Pattern rules are great, but it's tricky to call them. The solution: put them al
 
 `cinvoke` runs every task inside the category `copy_stuff` (except for copy_stuff itself).
 
+Default tasks
+*************
+
+You can have a task that will be run by default if no other task is specified:
+
+.. code-block:: python
+   
+   @task()
+   def build():
+       print("Inside build")
+   
+   main(default='build')
+
 Conclusion
 **********
 
