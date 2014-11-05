@@ -311,7 +311,7 @@ def main(no_warn=False, default=None):
             del args[i]
     try:
         DBManager.connection = sqlite3.connect(DBManager.path)
-        invoke(task, *args, **kw)
+        qinvoke(task, *args, **kw)
     except SystemExit as ex:
         sys.exit(ex.code)
     except:
