@@ -24,7 +24,7 @@
 __all__ = ['lock', 'add_category', 'task', 'ptask', 'need_to_update',
            'digest_update', 'qinvoke', 'invoke', 'pinvoke', 'qpinvoke', 'cinvoke',
            'run', 'run_d', 'main', 'DBManager']
-__version__ = 0.2
+__version__ = 0.3
 
 import sys, os, subprocess, shlex, traceback, re, sqlite3, hashlib, warnings
 from multiprocessing import Process, Lock
@@ -277,7 +277,7 @@ def print_tasks(tasks):
         else:
             print('%s' % name)
 
-def main(no_warn=False):
+def main(no_warn=False, default=None):
     if not no_warn:
         warnings.simplefilter('default')
     if '-h' in sys.argv or '--help' in sys.argv:
@@ -286,10 +286,10 @@ def main(no_warn=False):
     elif '--task-help' in sys.argv:
         print(task_str.replace('\n\n', '\n'))
         sys.exit()
-    elif len(sys.argv) < 2:
+    elif len(sys.argv) < 2 and default is None:
         sys.stderr.write('invalid number of args\n')
         sys.exit(usage_str)
-    task = sys.argv[1]
+    task = sys.argv[1] if len(sys.argv) >= 2 else default
     if task == '?':
         all_tasks = tasks.copy()
         all_tasks.update(extract_tasks('', categories.items()))
