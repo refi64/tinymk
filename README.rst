@@ -1,7 +1,7 @@
 TinyMk
 ======
 
-TinyMk is a small but powerful make system written in Python and based on `Cake <http://coffeescript.org/#cake>`_. It consists of a single script that's about 300 lines long. Here's a somewhat complex example of using it:
+TinyMk is a small but powerful make system written in Python and based on `Cake <http://coffeescript.org/#cake>`_ and `Shake <http://http://shakebuild.com/>`. It consists of a single script that's about 300 lines long. Here's a somewhat complex example of using it:
 
 .. code-block:: python
    
@@ -49,3 +49,5 @@ TinyMk is a small but powerful make system written in Python and based on `Cake 
 Even better, TinyMk is licensed under the MIT Expat license, so you can distribute it with your application.
 
 For more info, see the `docs` folder and the `examples` folder.
+
+Prebuild docs are available on `ReadTheDocs <https://tinymk.readthedocs.org/en/latest>`_.
