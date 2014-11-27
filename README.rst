@@ -51,3 +51,11 @@ Even better, TinyMk is licensed under the MIT Expat license, so you can distribu
 For more info, see the `docs` folder and the `examples` folder.
 
 Prebuild docs are available on `ReadTheDocs <https://tinymk.readthedocs.org/en/latest>`_.
+
+Links
+*****
+
+- `GitHub <https://github.com/kirbyfan64/tinymk>`_
+- `Documentation on ReadTheDocs <tinymk.readthedocs.org>`_
+- `Mailing list <tinymk@googlegroups.com>`_
+- `Mailing list web interface <https://groups.google.com/forum/#!forum/tinymk>`_

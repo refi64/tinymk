@@ -117,3 +117,7 @@ API reference
    :param deps: The dependencies.
    :param cmd: The command to run. See :py:func:`run`.
    :param \*\*kw: Keyword arguments passed to `run`. See :py:func:`run`.
+
+.. py:function:: main(no_warn=False, default=None)
+   
+   Run the main driver. If `no_warn` is `True`, then no warnings about deprecated stuff will be displayed. If `default` is not `None`, it is assumed to be a string holding a task to run if no tasks were given on the command line.
