@@ -211,7 +211,7 @@ def cinvoke(category_str, invoker=invoke):
     for x in extract_tasks(category_str, category.content.items()):
         invoker(x)
 
-def run(cmd, write=True, shell=False, get_output=False):
+def run(cmd, write=True, shell=False, get_output=False, **kw):
     if write:
         with lock:
             if isinstance(cmd, str):
@@ -221,9 +221,7 @@ def run(cmd, write=True, shell=False, get_output=False):
     if isinstance(cmd, str) and not shell:
         cmd = shlex.split(cmd)
     if get_output:
-        kw = {'stdout': subprocess.PIPE, 'stderr': subprocess.PIPE}
-    else:
-        kw = {}
+        kw.update({'stdout': subprocess.PIPE, 'stderr': subprocess.PIPE})
     p = subprocess.Popen(cmd, shell=shell, **kw)
     p.wait()
     if p.returncode != 0:
