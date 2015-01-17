@@ -28,6 +28,7 @@ __version__ = 0.3
 
 import sys, os, subprocess, shlex, traceback, re, sqlite3, hashlib, warnings
 from multiprocessing import Process, Lock
+from collections import OrderedDict
 from contextlib import closing
 
 lock = Lock()
@@ -42,7 +43,7 @@ def quote_cmd(x):
 
 class Category(object):
     def __init__(self):
-        self.content = {}
+        self.content = OrderedDict()
         self.f = None
     def __getitem__(self, x):
         return self.content[x]
@@ -129,7 +130,7 @@ def ptask(pattern, outs, deps, category=None):
     return _f
 
 def extract_tasks(n, x):
-    res = {}
+    res = OrderedDict()
     for k, v in x:
         name = '%s:%s' % (n, k) if n else k
         if isinstance(v, Category):
