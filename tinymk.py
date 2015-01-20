@@ -23,8 +23,7 @@
 
 __all__ = ['lock', 'add_category', 'task', 'ptask', 'need_to_update',
            'digest_update', 'qinvoke', 'invoke', 'pinvoke', 'qpinvoke', 'cinvoke',
-           'run', 'run_d', 'main', 'DBManager', 'value_deps', 'env_deps',
-           'get_data', 'set_data', 'set_denv']
+           'run', 'run_d', 'main', 'DBManager']
 __version__ = 0.3
 
 import sys, os, subprocess, shlex, traceback, re, sqlite3, hashlib, warnings
@@ -142,55 +141,6 @@ def extract_tasks(n, x):
             res[name] = v
     return res
 
-def value_deps(**kw):
-    do_update = False
-    connection = DBManager.connection
-    cursor = connection.cursor()
-    cursor.execute('CREATE TABLE IF NOT EXISTS data (key text, value text)')
-    for k, v in kw.items():
-        cursor.execute('SELECT value FROM data WHERE key=?', (k,))
-        row = cursor.fetchone()
-        if row is None:
-            cursor.execute('INSERT INTO data VALUES (?, ?)', (k, v))
-            do_update = True
-        else:
-            if row[0] != v:
-                cursor.execute('UPDATE data SET value=? WHERE key=?', (v, k))
-                do_update = True
-    connection.commit()
-    return do_update
-
-def env_deps(**kw):
-    res = {k: os.environ.get(k, v) for k, v in kw.items()}
-    return res, value_dependencies(**res)
-
-def get_data(k):
-    cursor = DBManager.connection.cursor()
-    cursor.execute('CREATE TABLE IF NOT EXISTS data (key text, value text)')
-    cursor.execute('SELECT value FROM data WHERE key=?', (k,))
-    row = cursor.fetchone()
-    return None if row is None else row[0]
-
-def set_data(**kw):
-    connection = DBManager.connection
-    cursor = connection.cursor()
-    cursor.execute('CREATE TABLE IF NOT EXISTS data (key text, value text)')
-    for k, v in kw.items():
-        cursor.execute('SELECT value FROM data WHERE key=?', (k,))
-        row = cursor.fetchone()
-        if row is None:
-            cursor.execute('INSERT INTO data VALUES (?, ?)', (k, v))
-        else:
-            if row[0] != v:
-                cursor.execute('UPDATE data SET value=? WHERE key=?', (v, k))
-    connection.commit()
-
-def set_denv(*args, **kw):
-    kw.update({arg: None for arg in args})
-    res = {k: os.environ.get(k, v) for k, v in kw.items()}
-    set_data(**res)
-    return res
-
 def need_to_update(outs, deps):
     if isinstance(outs, str):
         outs = shlex.split(outs)
@@ -265,11 +215,11 @@ def cinvoke(category_str, invoker=invoke):
 def run(cmd, write=True, shell=False, get_output=False, **kw):
     if write:
         with lock:
-            if isinstance(cmd, basestring):
+            if isinstance(cmd, str):
                 print(cmd)
             else:
                 print(quote_cmd(cmd))
-    if isinstance(cmd, basestring) and not shell:
+    if isinstance(cmd, str) and not shell:
         cmd = shlex.split(cmd)
     if get_output:
         kw.update({'stdout': subprocess.PIPE, 'stderr': subprocess.PIPE})
