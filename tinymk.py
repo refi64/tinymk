@@ -313,6 +313,9 @@ def main(no_warn=False, default=None):
         qinvoke(task, *args, **kw)
     except SystemExit as ex:
         sys.exit(ex.code)
+    # Don't eat KeyboardInterrupt
+    except KeyboardInterrupt:
+        sys.exit()
     except:
         sys.stderr.write('Exception occured during excecution of build script!\n')
         traceback.print_exc()
