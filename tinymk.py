@@ -26,12 +26,15 @@ __all__ = ['lock', 'add_category', 'task', 'ptask', 'need_to_update',
            'run', 'run_d', 'main', 'DBManager']
 __version__ = 0.4
 
+
 import sys, os, subprocess, shlex, traceback, re, sqlite3, hashlib, warnings
 from multiprocessing import Process, Lock
 from collections import OrderedDict
 from contextlib import closing
 
+
 lock = Lock()
+
 
 if sys.version_info.major >= 3:
     from shlex import quote
@@ -41,30 +44,32 @@ else:
 def quote_cmd(x):
     return ' '.join(map(quote, x))
 
+
 class Category(object):
     def __init__(self, name):
         self.content = OrderedDict()
         self.name = name
         self.f = None
-    def __getitem__(self, x):
-        return self.content[x]
-    def __setitem__(self, x, v):
-        self.content[x] = v
-    def __contains__(self, x):
-        return x in self.content
-    def __len__(self):
-        return len(self.content)
+
+    def __getitem__(self, x): return self.content[x]
+    def __setitem__(self, x, v): self.content[x] = v
+    def __contains__(self, x): return x in self.content
+    def __len__(self): return len(self.content)
+
     def __call__(self, *args, **kw):
         if self.f is None:
             raise Exception("Category '%s' cannot be run" % self.name)
         self.f(*args, **kw)
 
+
 class DBManager(object):
     path = '.tinymk.db'
     connection = None
 
+
 categories = {}
 tasks = {}
+
 
 def recursive_index(x, args):
     if not args:
@@ -72,11 +77,13 @@ def recursive_index(x, args):
     cur, rest = args[0], args[1:]
     return recursive_index(x[cur], rest)
 
+
 def raise_none(exc):
     if sys.version_info.major == 2:
         exec('raise exc')
     else:
         exec('raise exc from None')
+
 
 def _add_category(name, replace=False):
     if replace and ':' not in name:
@@ -90,6 +97,7 @@ def _add_category(name, replace=False):
             current[x] = Category(':'.join(catlist[:i+1]))
         current = current[x]
 
+
 def get_category(name, create=False):
     category_str, iname = name.rsplit(':', 1)
     if create:
@@ -102,13 +110,16 @@ def get_category(name, create=False):
 
     return iname, cat
 
+
 def add_category(name):
     warnings.warn('add_category is deprecated')
     _add_category(name, True)
 
+
 def task(tname=None):
     def _f(f):
         name = tname if tname is not None else f.__name__
+
         if ':' in name:
             name, bottom = get_category(name, True)
             if not name:
@@ -120,20 +131,25 @@ def task(tname=None):
         else:
             tasks[name] = f
         return f
+
     return _f
+
 
 def ptask(pattern, outs, deps, category=None):
     if isinstance(outs, str):
         outs = shlex.split(outs)
     if isinstance(deps, str):
         deps = shlex.split(deps)
+
     assert '%' in pattern
     rpat = re.compile(re.escape(pattern).replace(r'\%', '(.+?)'))
     res = []
+
     for dep in deps:
         fdep = rpat.match(dep)
         assert fdep
         out_res = []
+
         for out in outs:
             assert out.count('%') <= rpat.groups
             pos = 1
@@ -141,18 +157,24 @@ def ptask(pattern, outs, deps, category=None):
                 out = out.replace('%', fdep.group(pos), 1)
                 pos += 1
             out_res.append(out)
+
         res.append((tuple(out_res), dep))
+
     def _f(f):
         def mkfunc(outs, dep):
             return lambda *args, **kw: f(outs, dep, *args, **kw)
+
         for outs, dep in res:
             func = mkfunc(outs, dep)
             for out in outs:
                 task('%s:%s' % (category, out) if category else out)(func)
+
     return _f
+
 
 def extract_tasks(n, x):
     res = OrderedDict()
+
     for k, v in x:
         name = '%s:%s' % (n, k) if n else k
         if isinstance(v, Category):
@@ -161,38 +183,49 @@ def extract_tasks(n, x):
             res.update(extract_tasks(name, v.content.items()))
         else:
             res[name] = v
+
     return res
+
 
 def need_to_update(outs, deps):
     if isinstance(outs, str):
         outs = shlex.split(outs)
     if isinstance(deps, str):
         deps = shlex.split(deps)
+
     if not all(map(os.path.exists, outs)):
         return True
     oldest_out = min(map(os.path.getmtime, outs))
     newest_dep = max(map(os.path.getmtime, deps))
+
     return newest_dep > oldest_out
+
 
 def get_digest(fpath):
     h = hashlib.sha1()
+
     with open(fpath, 'rb') as f:
         buf = f.read(1024)
         while buf:
             h.update(buf)
             buf = f.read(1024)
+
     return h.hexdigest()
+
 
 def digest_update(_, deps):
     if isinstance(deps, str):
         deps = shlex.split(deps)
     do_update = False
+
     connection = DBManager.connection
     cursor = connection.cursor()
     cursor.execute('CREATE TABLE IF NOT EXISTS hashes (path text, hash text)')
+
     for dep in deps:
         cursor.execute('SELECT hash FROM hashes WHERE path=?', (dep,))
         row = cursor.fetchone()
+
         if row is None:
             do_update = True
             cursor.execute('INSERT INTO hashes VALUES (?, ?)', (dep,
@@ -204,8 +237,10 @@ def digest_update(_, deps):
                 do_update = True
                 cursor.execute('UPDATE hashes SET hash=? WHERE path=?', (
                                current, dep))
+
     connection.commit()
     return do_update
+
 
 def qinvoke(name, *args, **kw):
     if ':' in name:
@@ -223,25 +258,30 @@ def qinvoke(name, *args, **kw):
     else:
         target[iname](*args, **kw)
 
+
 def invoke(name, *args, **kw):
     with lock:
         print('Running task %s...' % name)
     qinvoke(name, *args, **kw)
+
 
 def pinvoke(*args, **kw):
     p = Process(target=invoke, args=args, kwargs=kw)
     p.start()
     return p
 
+
 def qpinvoke(*args, **kw):
     p = Process(target=qinvoke, args=args, kwargs=kw)
     p.start()
     return p
 
+
 def cinvoke(category_str, invoker=invoke):
     category = recursive_index(categories, category_str.split(':'))
     for x in extract_tasks(category_str, category.content.items()):
         invoker(x)
+
 
 def run(cmd, write=True, shell=False, get_output=False, **kw):
     if write:
@@ -250,20 +290,25 @@ def run(cmd, write=True, shell=False, get_output=False, **kw):
                 print(cmd)
             else:
                 print(quote_cmd(cmd))
+
     if isinstance(cmd, str) and not shell:
         cmd = shlex.split(cmd)
     if get_output:
         kw.update({'stdout': subprocess.PIPE, 'stderr': subprocess.PIPE})
+
     p = subprocess.Popen(cmd, shell=shell, **kw)
     p.wait()
     if p.returncode != 0:
-        sys.exit("command '%s' returned exit status %d" % (cmd[0], p.returncode))
+        sys.exit("command '%s' returned exit status %d" % (cmd[0],
+                                                           p.returncode))
     if get_output:
         return p.communicate()
+
 
 def run_d(outs, deps, cmd, func=need_to_update, **kw):
     if func(outs, deps):
         run(cmd, **kw)
+
 
 usage_str = 'usage: %s [-h|--help] [--task-help] <task> [<args>]' % sys.argv[0]
 
@@ -298,18 +343,22 @@ If you do this:
 it will print information about the task `c` inside `b` inside `a`.
 '''.strip()
 
+
 def print_tasks(tasks):
     if tasks:
         longest = max(map(len, tasks))
+
     for name, t in tasks.items():
         if t.__doc__ is not None:
             print('%s %s' % (name.ljust(longest), t.__doc__))
         else:
             print('%s' % name)
 
+
 def main(no_warn=False, default=None):
     if not no_warn:
         warnings.simplefilter('default')
+
     if '-h' in sys.argv or '--help' in sys.argv:
         sys.stdout.write(help_str)
         sys.exit()
@@ -319,6 +368,7 @@ def main(no_warn=False, default=None):
     elif len(sys.argv) < 2 and default is None:
         sys.stderr.write('invalid number of args\n')
         sys.exit(usage_str)
+
     task = sys.argv[1] if len(sys.argv) >= 2 else default
     if task == '?':
         all_tasks = tasks.copy()
@@ -332,6 +382,7 @@ def main(no_warn=False, default=None):
         print('Tasks in category %s:\n' % cname)
         print_tasks(extract_tasks(task[:-2], category.content.items()))
         sys.exit()
+
     args = sys.argv[2:]
     kw = {}
     for i, arg in enumerate(args[:]):
@@ -339,6 +390,7 @@ def main(no_warn=False, default=None):
             k, v = arg.split('=')
             kw[k] = v
             del args[i]
+
     try:
         DBManager.connection = sqlite3.connect(DBManager.path)
         qinvoke(task, *args, **kw)
@@ -348,6 +400,7 @@ def main(no_warn=False, default=None):
     except KeyboardInterrupt:
         sys.exit()
     except:
-        sys.stderr.write('Exception occured during excecution of build script!\n')
+        sys.stderr.write(
+            'Exception occured during excecution of build script!\n')
         traceback.print_exc()
         sys.exit(1)
