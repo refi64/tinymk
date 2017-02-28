@@ -42,8 +42,9 @@ def quote_cmd(x):
     return ' '.join(map(quote, x))
 
 class Category(object):
-    def __init__(self):
+    def __init__(self, name):
         self.content = OrderedDict()
+        self.name = name
         self.f = None
     def __getitem__(self, x):
         return self.content[x]
@@ -55,7 +56,7 @@ class Category(object):
         return len(self.content)
     def __call__(self, *args, **kw):
         if self.f is None:
-            sys.exit('this category cannot be run')
+            raise Exception("Category '%s' cannot be run" % self.name)
         self.f(*args, **kw)
 
 class DBManager(object):
@@ -71,25 +72,45 @@ def recursive_index(x, args):
     cur, rest = args[0], args[1:]
     return recursive_index(x[cur], rest)
 
-def get_category(name):
-    category_str, name = name.rsplit(':', 1)
-    return name, recursive_index(categories, category_str.split(':'))
+def raise_none(exc):
+    if sys.version_info.major == 2:
+        exec('raise exc')
+    else:
+        exec('raise exc from None')
+
+def _add_category(name, replace=False):
+    if replace and ':' not in name:
+        categories[name] = Category(name)
+        return
+
+    current = categories
+    catlist = name.split(':')
+    for i, x in enumerate(catlist):
+        if x not in current:
+            current[x] = Category(':'.join(catlist[:i+1]))
+        current = current[x]
+
+def get_category(name, create=False):
+    category_str, iname = name.rsplit(':', 1)
+    if create:
+        _add_category(category_str)
+
+    try:
+        cat = recursive_index(categories, category_str.split(':'))
+    except KeyError:
+        raise_none(Exception("Non-existent category '%s'" % name))
+
+    return iname, cat
 
 def add_category(name):
-    if ':' in name:
-        current = categories
-        for x in name.split(':'):
-            if x not in current:
-                current[x] = Category()
-            current = current[x]
-    else:
-        categories[name] = Category()
+    warnings.warn('add_category is deprecated')
+    _add_category(name, True)
 
 def task(tname=None):
     def _f(f):
         name = tname if tname is not None else f.__name__
         if ':' in name:
-            name, bottom = get_category(name)
+            name, bottom = get_category(name, True)
             if not name:
                 name = f.__name__
             if name in bottom and isinstance(bottom[name], Category):
@@ -188,10 +209,19 @@ def digest_update(_, deps):
 
 def qinvoke(name, *args, **kw):
     if ':' in name:
-        name, category = get_category(name)
-        category[name](*args, **kw)
+        iname, target = get_category(name)
     else:
-        tasks[name](*args, **kw)
+        iname = name
+        target = tasks
+
+    if not iname:
+        target(*args, **kw)
+    elif not isinstance(target, Category) and target is not tasks:
+        raise Exception("Target '%s' is not a category" % name)
+    elif iname not in target:
+        raise Exception("Non-existent target '%s'" % name)
+    else:
+        target[iname](*args, **kw)
 
 def invoke(name, *args, **kw):
     with lock:

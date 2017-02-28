@@ -9,8 +9,6 @@ def coffee(x):
     # run the CoffeeScript compiler
     run('coffee -c %s' % x)
 
-add_category('build') # add a new category
-
 @task()
 def build():
     invoke('build:a')
