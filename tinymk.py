@@ -1,7 +1,7 @@
 # TinyMk
 # A miniature Makefile alternative
 #
-# Copyright (c) 2015 Ryan Gonzalez
+# Copyright (c) 2017 Ryan Gonzalez
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -303,7 +303,7 @@ def main(no_warn=False, default=None):
         sys.exit()
     args = sys.argv[2:]
     kw = {}
-    for i, arg in enumerate(args):
+    for i, arg in enumerate(args[:]):
         if '=' in arg:
             k, v = arg.split('=')
             kw[k] = v
