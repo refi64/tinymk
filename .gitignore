@@ -4,3 +4,4 @@ examples/basic/*.out
 examples/coffeescript/*.js
 *.pyc
 __pycache__
+.tinymk.db
