@@ -24,7 +24,7 @@
 __all__ = ['lock', 'add_category', 'task', 'ptask', 'need_to_update',
            'digest_update', 'qinvoke', 'invoke', 'pinvoke', 'qpinvoke', 'cinvoke',
            'run', 'run_d', 'main', 'DBManager']
-__version__ = 0.3
+__version__ = 0.4
 
 import sys, os, subprocess, shlex, traceback, re, sqlite3, hashlib, warnings
 from multiprocessing import Process, Lock
