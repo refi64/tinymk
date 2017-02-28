@@ -53,9 +53,10 @@ class Category(object):
         return x in self.content
     def __len__(self):
         return len(self.content)
-    def __call__(self):
+    def __call__(self, *args, **kw):
         if self.f is None:
             sys.exit('this category cannot be run')
+        self.f(*args, **kw)
 
 class DBManager(object):
     path = '.tinymk.db'
