@@ -22,8 +22,8 @@
 # THE SOFTWARE.
 
 __all__ = ['lock', 'add_category', 'task', 'ptask', 'need_to_update',
-           'digest_update', 'qinvoke', 'invoke', 'pinvoke', 'qpinvoke', 'cinvoke',
-           'run', 'run_d', 'main', 'DBManager']
+           'digest_update', 'qinvoke', 'invoke', 'pinvoke', 'qpinvoke',
+           'cinvoke', 'run', 'run_d', 'main', 'DBManager', 'file_digest']
 __version__ = 0.4
 
 
@@ -43,6 +43,15 @@ else:
 
 def quote_cmd(x):
     return ' '.join(map(quote, x))
+
+
+if hasattr(hashlib, 'blake2b'):
+    if sys.maxsize > 2**32:
+        default_hash = hashlib.blake2b
+    else:
+        default_hash = hashlib.blake2s
+else:
+    default_hash = hashlib.sha256
 
 
 class Category(object):
@@ -201,8 +210,8 @@ def need_to_update(outs, deps):
     return newest_dep > oldest_out
 
 
-def get_digest(fpath):
-    h = hashlib.sha1()
+def file_digest(fpath, hash=default_hash):
+    h = hash()
 
     with open(fpath, 'rb') as f:
         buf = f.read(1024)
@@ -228,15 +237,15 @@ def digest_update(_, deps):
 
         if row is None:
             do_update = True
-            cursor.execute('INSERT INTO hashes VALUES (?, ?)', (dep,
-                           get_digest(dep)))
+            cursor.execute('INSERT INTO hashes VALUES (?, ?)',
+                           (dep, file_digest(dep)))
         else:
-            current = get_digest(dep)
+            current = file_digest(dep)
             old = row[0]
             if old != current:
                 do_update = True
-                cursor.execute('UPDATE hashes SET hash=? WHERE path=?', (
-                               current, dep))
+                cursor.execute('UPDATE hashes SET hash=? WHERE path=?',
+                               (current, dep))
 
     connection.commit()
     return do_update

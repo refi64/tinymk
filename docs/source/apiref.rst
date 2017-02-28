@@ -8,6 +8,26 @@ API reference
   An instance of `multiprocessing.Lock`. Use this when dealing with `stdout`
   and `stderr`.
 
+.. py:data:: DBManager
+
+  The database manager. This is exported so that you can change the database
+  path if desired:
+
+  .. code-block:: python
+
+    from tinymk import *
+    DBManager.path = 'whatever-other-name.db'
+
+  The default path is ``.tinymk.db``.
+
+.. py:function:: file_digest(path, hash=<unspecified>)
+
+  Return the digest of the given path. *hash* is the hashing algorithm to use
+  (you can subsitite in any hash in *hashlib*, e.g.
+  ``file_digest(..., hash=hashlib.sha224)``). The default hashing algorithms
+  used are blake2b on 64-bit Python 3.6, blake2s on 32-bit Python 3.6, and
+  SHA-256 on all other Python versions and architectures.
+
 .. py:function:: add_category(name)
 
   Add a new category. You can create multiple categories at once by separating
