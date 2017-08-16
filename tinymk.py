@@ -117,7 +117,7 @@ def get_category(name, create=False):
     except KeyError:
         raise_none(Exception("Non-existent category '%s'" % category_str))
 
-    return iname, cat
+    return name, cat
 
 
 def add_category(name):
