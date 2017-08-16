@@ -108,14 +108,14 @@ def _add_category(name, replace=False):
 
 
 def get_category(name, create=False):
-    category_str, iname = name.rsplit(':', 1)
+    category_str, name = name.rsplit(':', 1)
     if create:
         _add_category(category_str)
 
     try:
         cat = recursive_index(categories, category_str.split(':'))
     except KeyError:
-        raise_none(Exception("Non-existent category '%s'" % name))
+        raise_none(Exception("Non-existent category '%s'" % category_str))
 
     return iname, cat
 
